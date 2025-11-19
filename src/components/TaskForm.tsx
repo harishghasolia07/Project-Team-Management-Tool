@@ -1,17 +1,50 @@
-import { useState } from 'react';
-import { X } from 'lucide-react';
+import { useState, useMemo, useEffect } from 'react';
+import { X, Sparkles, Clock } from 'lucide-react';
+import { useProjects } from '../hooks/useProjects';
 
 interface TaskFormProps {
   onSave: (name: string, assignedTo?: string, dueDate?: string) => void;
   onCancel: () => void;
   teamMembers: string[];
+  projectId?: string;
 }
 
 export function TaskForm({ onSave, onCancel, teamMembers }: TaskFormProps) {
+  const { projects } = useProjects();
   const [name, setName] = useState('');
   const [assignedTo, setAssignedTo] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [error, setError] = useState('');
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  const suggestedMembers = useMemo(() => {
+    if (teamMembers.length === 0) return [];
+    
+    const memberStats = teamMembers.map((member) => {
+      const tasks = projects.reduce((acc, project) => {
+        return acc + project.tasks.filter((t) => t.assignedTo === member && !t.completed).length;
+      }, 0);
+      return { member, taskCount: tasks };
+    });
+
+    const sortedByCapacity = memberStats.sort((a, b) => a.taskCount - b.taskCount);
+    return sortedByCapacity.slice(0, 3).map((s) => s.member);
+  }, [teamMembers, projects]);
+
+  const suggestedDueDate = useMemo(() => {
+    const today = new Date();
+    const nextWeek = new Date(today);
+    nextWeek.setDate(today.getDate() + 7);
+    return nextWeek.toISOString().split('T')[0];
+  }, []);
+
+  useEffect(() => {
+    if (assignedTo.length > 0) {
+      setShowSuggestions(true);
+    } else {
+      setShowSuggestions(false);
+    }
+  }, [assignedTo]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,13 +88,14 @@ export function TaskForm({ onSave, onCancel, teamMembers }: TaskFormProps) {
             <label htmlFor="assignedTo" className="block text-sm font-medium text-gray-700 mb-2">
               Assign to (optional)
             </label>
-            <>
+            <div className="relative">
               <input
                 id="assignedTo"
                 type="text"
                 list="team-members"
                 value={assignedTo}
                 onChange={(e) => setAssignedTo(e.target.value)}
+                onFocus={() => setShowSuggestions(true)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent"
                 placeholder="Select or type name"
               />
@@ -70,20 +104,57 @@ export function TaskForm({ onSave, onCancel, teamMembers }: TaskFormProps) {
                   <option key={member} value={member} />
                 ))}
               </datalist>
-            </>
+              
+              {suggestedMembers.length > 0 && showSuggestions && !assignedTo && (
+                <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Sparkles size={14} className="text-blue-600" />
+                    <span className="text-xs font-medium text-blue-900">Suggested (lowest workload)</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {suggestedMembers.map((member) => (
+                      <button
+                        key={member}
+                        type="button"
+                        onClick={() => {
+                          setAssignedTo(member);
+                          setShowSuggestions(false);
+                        }}
+                        className="px-2 py-1 text-xs font-medium text-blue-700 bg-blue-100 rounded hover:bg-blue-200 transition-colors"
+                      >
+                        {member}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           <div>
             <label htmlFor="dueDate" className="block text-sm font-medium text-gray-700 mb-2">
               Due date (optional)
             </label>
-            <input
-              id="dueDate"
-              type="date"
-              value={dueDate}
-              onChange={(e) => setDueDate(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent"
-            />
+            <div className="space-y-2">
+              <input
+                id="dueDate"
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+                min={new Date().toISOString().split('T')[0]}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent"
+              />
+              {!dueDate && (
+                <button
+                  type="button"
+                  onClick={() => setDueDate(suggestedDueDate)}
+                  className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+                >
+                  <Clock size={12} />
+                  Suggest: 1 week from now
+                </button>
+              )}
+            </div>
           </div>
 
           {error && <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-800">{error}</div>}

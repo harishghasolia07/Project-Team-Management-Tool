@@ -5,6 +5,7 @@ import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { Landing } from './pages/Landing';
 import { Dashboard } from './pages/Dashboard';
+import { Projects } from './pages/Projects';
 import { ProjectDetail } from './pages/ProjectDetail';
 import { Team } from './pages/Team';
 
@@ -34,6 +35,9 @@ function App() {
     }
     if (location === '/dashboard') {
       return <Dashboard />;
+    }
+    if (location === '/projects') {
+      return <Projects />;
     }
     if (location === '/team') {
       return <Team />;

@@ -4,7 +4,7 @@ import { useProjects } from '../hooks/useProjects';
 import { useParams, Link } from '../utils/router';
 import { TaskItem } from '../components/TaskItem';
 import { TaskForm } from '../components/TaskForm';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, TrendingUp } from 'lucide-react';
 import type { Project, Task } from '../types';
 
 type ForecastPoint = {
@@ -246,27 +246,108 @@ export function ProjectDetail() {
 
       <div className="mb-8 rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <h2 className="text-lg font-semibold text-gray-900">Progress Forecast</h2>
-          {nextDueLabel && <span className="text-sm text-gray-500">Next due: {nextDueLabel}</span>}
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">Progress Forecast</h2>
+            <p className="text-xs text-gray-500 mt-1">Burn-up chart showing planned vs completed tasks over time</p>
+          </div>
+          {nextDueLabel && (
+            <div className="text-right">
+              <span className="text-xs text-gray-500">Next due</span>
+              <p className="text-sm font-semibold text-gray-900">{nextDueLabel}</p>
+            </div>
+          )}
         </div>
         {hasForecastChart ? (
-          <>
+          <div className="mt-4 space-y-3">
+            {/* Trend indicator */}
+            {forecastPoints.length >= 2 && (() => {
+              const firstCompleted = forecastPoints[0].completed;
+              const lastCompleted = forecastPoints[forecastPoints.length - 1].completed;
+              const lastPlanned = forecastPoints[forecastPoints.length - 1].planned;
+              const completionTrend = lastCompleted > firstCompleted;
+              const completionRate = lastPlanned > 0 ? Math.round((lastCompleted / lastPlanned) * 100) : 0;
+              const onTrack = completionTrend && completionRate >= 50;
+              
+              return (
+                <div className="flex items-center gap-4 text-sm">
+                  <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg ${
+                    onTrack 
+                      ? 'bg-green-50 text-green-700 border border-green-200' 
+                      : 'bg-amber-50 text-amber-700 border border-amber-200'
+                  }`}>
+                    <TrendingUp size={14} />
+                    <span className="font-medium">
+                      {onTrack ? 'On Track' : 'Needs Attention'}
+                    </span>
+                  </div>
+                  <span className="text-gray-600">
+                    Completion rate: <span className="font-semibold">{completionRate}%</span>
+                  </span>
+                </div>
+              );
+            })()}
+            
             <svg
-              className="mt-4 w-full"
+              className="w-full"
               viewBox={`0 0 ${chartWidth} ${chartHeight}`}
               role="img"
               aria-label="Burn-up chart showing planned vs completed tasks"
             >
-              <path d={plannedPath} fill="none" stroke="#94a3b8" strokeWidth="2" />
-              <path d={completedPath} fill="none" stroke="#0f172a" strokeWidth="2" />
+              {/* Grid lines */}
+              {[0, 25, 50, 75, 100].map((percent) => {
+                const y = chartHeight - (percent / 100) * chartHeight;
+                return (
+                  <line
+                    key={percent}
+                    x1="0"
+                    y1={y}
+                    x2={chartWidth}
+                    y2={y}
+                    stroke="#e5e7eb"
+                    strokeWidth="1"
+                    strokeDasharray="2,2"
+                    opacity="0.5"
+                  />
+                );
+              })}
+              
+              {/* Area under planned line */}
+              {plannedPath && (
+                <path
+                  d={`${plannedPath} L${chartWidth} ${chartHeight} L0 ${chartHeight} Z`}
+                  fill="#94a3b8"
+                  opacity="0.1"
+                />
+              )}
+              
+              {/* Area under completed line */}
+              {completedPath && (
+                <path
+                  d={`${completedPath} L${chartWidth} ${chartHeight} L0 ${chartHeight} Z`}
+                  fill="#0f172a"
+                  opacity="0.1"
+                />
+              )}
+              
+              {/* Lines */}
+              <path d={plannedPath} fill="none" stroke="#94a3b8" strokeWidth="2.5" strokeDasharray="4,2" opacity="0.7" />
+              <path d={completedPath} fill="none" stroke="#0f172a" strokeWidth="3" />
+              
+              {/* Data points */}
               {forecastPoints.map((point, index) => {
                 const x = index * xStep;
                 const plannedY = chartHeight - (point.planned / maxValue) * chartHeight;
                 const completedY = chartHeight - (point.completed / maxValue) * chartHeight;
                 return (
                   <g key={`${point.label}-${index}`}>
-                    <circle cx={x} cy={plannedY} r={3} fill="#94a3b8" />
-                    <circle cx={x} cy={completedY} r={3} fill="#0f172a" />
+                    <circle cx={x} cy={plannedY} r={4} fill="#94a3b8" stroke="white" strokeWidth="1.5" />
+                    <circle cx={x} cy={completedY} r={4.5} fill="#0f172a" stroke="white" strokeWidth="1.5" />
+                    {/* Tooltip area */}
+                    <circle cx={x} cy={completedY} r="8" fill="transparent" className="cursor-pointer">
+                      <title>
+                        {point.label}: {point.completed}/{point.planned} completed
+                      </title>
+                    </circle>
                   </g>
                 );
               })}
@@ -278,7 +359,7 @@ export function ProjectDetail() {
                 </span>
               ))}
             </div>
-          </>
+          </div>
         ) : (
           <p className="mt-4 text-sm text-gray-500">Add due dates to visualize the burn-up forecast.</p>
         )}
@@ -423,7 +504,12 @@ export function ProjectDetail() {
         )}
 
         {showTaskForm && (
-          <TaskForm onSave={handleAddTask} onCancel={() => setShowTaskForm(false)} teamMembers={getTeamMembers(projects)} />
+          <TaskForm 
+            onSave={handleAddTask} 
+            onCancel={() => setShowTaskForm(false)} 
+            teamMembers={getTeamMembers(projects)}
+            projectId={project.id}
+          />
         )}
       </div>
     </div>

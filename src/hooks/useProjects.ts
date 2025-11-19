@@ -363,11 +363,6 @@ export function useProjects() {
     persist(updated);
   };
 
-  const resetDemoData = () => {
-    const reset = DEFAULT_PROJECTS.map(cloneProject);
-    setProjects(reset);
-    persist(reset);
-  };
 
   return {
     projects,
@@ -381,6 +376,5 @@ export function useProjects() {
     setTasksCompletion,
     deleteTasksBulk,
     reorderTasks,
-    resetDemoData,
   };
 }

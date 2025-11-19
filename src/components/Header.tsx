@@ -1,9 +1,10 @@
 import { useLocation, Link } from '../utils/router';
-import { LayoutGrid, Users, Compass } from 'lucide-react';
+import { LayoutGrid, Users, Compass, FolderKanban } from 'lucide-react';
 
 export function Header() {
   const location = useLocation();
-  const dashboardActive = location === '/dashboard' || location.startsWith('/project/');
+  const dashboardActive = location === '/dashboard';
+  const projectsActive = location === '/projects' || location.startsWith('/project/');
   const teamActive = location === '/team';
 
   return (
@@ -37,6 +38,15 @@ export function Header() {
             >
               <LayoutGrid size={18} />
               <span className="hidden sm:inline">Dashboard</span>
+            </Link>
+            <Link
+              to="/projects"
+              className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${
+                projectsActive ? 'bg-slate-100 text-gray-900' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              }`}
+            >
+              <FolderKanban size={18} />
+              <span className="hidden sm:inline">Projects</span>
             </Link>
             <Link
               to="/team"

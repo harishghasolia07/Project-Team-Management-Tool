@@ -1,4 +1,6 @@
 import { Link } from '../utils/router';
+import { useProjects } from '../hooks/useProjects';
+import { useMemo } from 'react';
 
 const features = [
   {
@@ -19,6 +21,71 @@ const features = [
 ];
 
 export function Landing() {
+  const { projects } = useProjects();
+
+  const snapshotData = useMemo(() => {
+    // Active projects (In Progress)
+    const activeProjects = projects.filter((p) => p.status === 'In Progress').length;
+
+    // Calculate team capacity
+    const memberStats: Record<string, { assigned: number; completed: number }> = {};
+    projects.forEach((project) => {
+      project.tasks.forEach((task) => {
+        const member = task.assignedTo || 'Unassigned';
+        if (!memberStats[member]) {
+          memberStats[member] = { assigned: 0, completed: 0 };
+        }
+        memberStats[member].assigned += 1;
+        if (task.completed) {
+          memberStats[member].completed += 1;
+        }
+      });
+    });
+
+    // Calculate average capacity (based on remaining tasks vs a baseline of 5 tasks per person)
+    const memberEntries = Object.entries(memberStats).filter(([member]) => member !== 'Unassigned');
+    const totalMembers = memberEntries.length;
+    
+    if (totalMembers === 0) {
+      return {
+        activeProjects,
+        teamCapacity: 0,
+        upcomingMilestones: 0,
+        todayDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      };
+    }
+
+    const avgRemainingTasks =
+      memberEntries.reduce((sum, [, stats]) => sum + (stats.assigned - stats.completed), 0) / totalMembers;
+
+    const teamCapacity = Math.min(100, Math.round((avgRemainingTasks / 5) * 100));
+
+    // Calculate upcoming milestones (tasks due this week)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const nextWeek = new Date(today);
+    nextWeek.setDate(today.getDate() + 7);
+
+    const upcomingMilestones = projects.reduce((count, project) => {
+      return (
+        count +
+        project.tasks.filter((task) => {
+          if (!task.dueDate || task.completed) return false;
+          const dueDate = new Date(task.dueDate);
+          dueDate.setHours(0, 0, 0, 0);
+          return dueDate >= today && dueDate <= nextWeek;
+        }).length
+      );
+    }, 0);
+
+    return {
+      activeProjects,
+      teamCapacity,
+      upcomingMilestones,
+      todayDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+    };
+  }, [projects]);
+
   return (
     <div className="bg-white">
       <section className="relative overflow-hidden">
@@ -53,25 +120,34 @@ export function Landing() {
           <div className="relative mx-auto w-full max-w-md rounded-3xl bg-white/10 p-6 backdrop-blur">
             <div className="space-y-4">
               <div className="flex items-center justify-between text-sm text-indigo-100">
-                <span>Today’s snapshot</span>
-                <span className="font-semibold text-white">Nov 8, 2025</span>
+                <span>Today's snapshot</span>
+                <span className="font-semibold text-white">{snapshotData.todayDate}</span>
               </div>
               <div className="rounded-2xl bg-white/10 p-4 ring-1 ring-white/20">
                 <p className="text-sm text-indigo-200">Active projects</p>
-                <p className="mt-2 text-3xl font-semibold text-white">10</p>
+                <p className="mt-2 text-3xl font-semibold text-white">{snapshotData.activeProjects}</p>
                 <div className="mt-4 space-y-3">
                   <div className="h-2 w-full rounded-full bg-white/10">
-                    <div className="h-2 w-2/3 rounded-full bg-emerald-400" />
+                    <div
+                      className={`h-2 rounded-full transition-all duration-500 ${
+                        snapshotData.teamCapacity >= 85
+                          ? 'bg-red-400'
+                          : snapshotData.teamCapacity >= 60
+                          ? 'bg-amber-400'
+                          : 'bg-emerald-400'
+                      }`}
+                      style={{ width: `${Math.min(100, snapshotData.teamCapacity)}%` }}
+                    />
                   </div>
                   <div className="flex items-center justify-between text-xs text-indigo-200">
                     <span>Team load</span>
-                    <span>67% capacity</span>
+                    <span>{snapshotData.teamCapacity}% capacity</span>
                   </div>
                 </div>
               </div>
               <div className="flex items-center justify-between text-sm text-indigo-100">
                 <span>Upcoming milestones</span>
-                <span>3 this week</span>
+                <span>{snapshotData.upcomingMilestones} this week</span>
               </div>
             </div>
           </div>

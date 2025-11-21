@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { DragDropContext, Droppable, Draggable, type DropResult } from 'react-beautiful-dnd';
 import { useProjects } from '../hooks/useProjects';
-import { useParams, Link } from '../utils/router';
+import { useParams, Link } from 'react-router-dom';
 import { TaskItem } from '../components/TaskItem';
 import { TaskForm } from '../components/TaskForm';
 import { ArrowLeft, TrendingUp } from 'lucide-react';
@@ -20,32 +19,17 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export function ProjectDetail() {
-  const { id } = useParams();
-  const { projects, addTask, toggleTask, deleteTask, editProject, reorderTasks, setTasksCompletion, deleteTasksBulk } =
+  const { id } = useParams<{ id: string }>();
+  const { projects, addTask, toggleTask, deleteTask, editProject, setTasksCompletion, deleteTasksBulk } =
     useProjects();
   const project = projects.find((p) => p.id === id);
   const [showTaskForm, setShowTaskForm] = useState(false);
-  const [sortMode, setSortMode] = useState<'manual' | 'dueDate' | 'status'>('manual');
+  const [sortMode, setSortMode] = useState<'dueDate' | 'status'>('dueDate');
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
 
-  const handleDragEnd = (result: DropResult) => {
-    if (!project || sortMode !== 'manual' || selectionMode) return;
-    const { destination, source } = result;
-    if (!destination) return;
-
-    if (destination.index === source.index && destination.droppableId === source.droppableId) {
-      return;
-    }
-
-    reorderTasks(project.id, source.index, destination.index);
-  };
-
   const tasksToRender = useMemo(() => {
     if (!project) return [] as Task[];
-    if (sortMode === 'manual') {
-      return project.tasks;
-    }
 
     const copy = [...project.tasks];
 
@@ -400,10 +384,9 @@ export function ProjectDetail() {
               <select
                 id="taskSort"
                 value={sortMode}
-                onChange={(e) => setSortMode(e.target.value as 'manual' | 'dueDate' | 'status')}
+                onChange={(e) => setSortMode(e.target.value as 'dueDate' | 'status')}
                 className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900"
               >
-                <option value="manual">Manual order</option>
                 <option value="dueDate">Due date</option>
                 <option value="status">Status</option>
               </select>
@@ -450,57 +433,23 @@ export function ProjectDetail() {
             <p className="text-gray-500 text-sm mt-1">Add a task to start tracking progress</p>
           </div>
         ) : (
-          sortMode === 'manual' && !selectionMode ? (
-            <DragDropContext onDragEnd={handleDragEnd}>
-              <Droppable droppableId="tasks">
-                {(droppableProvided) => (
-                  <div ref={droppableProvided.innerRef} {...droppableProvided.droppableProps} className="space-y-3">
-                    {tasksToRender.map((task, index) => (
-                      <Draggable key={task.id} draggableId={task.id} index={index}>
-                        {(draggableProvided, snapshot) => (
-                          <TaskItem
-                            task={task}
-                            onToggle={() => toggleTask(project.id, task.id)}
-                            onDelete={() => {
-                              if (window.confirm(`Delete task "${task.name}"?`)) {
-                                deleteTask(project.id, task.id);
-                              }
-                            }}
-                            draggableProps={draggableProvided.draggableProps}
-                            dragHandleProps={draggableProvided.dragHandleProps}
-                            innerRef={draggableProvided.innerRef}
-                            isDragging={snapshot.isDragging}
-                            selectionMode={selectionMode}
-                            selected={selectedTaskIds.includes(task.id)}
-                            onSelectionChange={(checked) => handleSelectionToggle(task.id, checked)}
-                          />
-                        )}
-                      </Draggable>
-                    ))}
-                    {droppableProvided.placeholder}
-                  </div>
-                )}
-              </Droppable>
-            </DragDropContext>
-          ) : (
-            <div className="space-y-3">
-              {tasksToRender.map((task) => (
-                <TaskItem
-                  key={task.id}
-                  task={task}
-                  onToggle={() => toggleTask(project.id, task.id)}
-                  onDelete={() => {
-                    if (window.confirm(`Delete task "${task.name}"?`)) {
-                      deleteTask(project.id, task.id);
-                    }
-                  }}
-                  selectionMode={selectionMode}
-                  selected={selectedTaskIds.includes(task.id)}
-                  onSelectionChange={(checked) => handleSelectionToggle(task.id, checked)}
-                />
-              ))}
-            </div>
-          )
+          <div className="space-y-3">
+            {tasksToRender.map((task) => (
+              <TaskItem
+                key={task.id}
+                task={task}
+                onToggle={() => toggleTask(project.id, task.id)}
+                onDelete={() => {
+                  if (window.confirm(`Delete task "${task.name}"?`)) {
+                    deleteTask(project.id, task.id);
+                  }
+                }}
+                selectionMode={selectionMode}
+                selected={selectedTaskIds.includes(task.id)}
+                onSelectionChange={(checked) => handleSelectionToggle(task.id, checked)}
+              />
+            ))}
+          </div>
         )}
 
         {showTaskForm && (

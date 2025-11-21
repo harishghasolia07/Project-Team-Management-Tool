@@ -1,11 +1,11 @@
-import { useLocation, Link } from '../utils/router';
+import { useLocation, Link } from 'react-router-dom';
 import { LayoutGrid, Users, Compass, FolderKanban } from 'lucide-react';
 
 export function Header() {
   const location = useLocation();
-  const dashboardActive = location === '/dashboard';
-  const projectsActive = location === '/projects' || location.startsWith('/project/');
-  const teamActive = location === '/team';
+  const dashboardActive = location.pathname === '/dashboard';
+  const projectsActive = location.pathname === '/projects' || location.pathname.startsWith('/project/');
+  const teamActive = location.pathname === '/team';
 
   return (
     <header className="bg-white border-b border-gray-200">
@@ -22,7 +22,7 @@ export function Header() {
             <Link
               to="/"
               className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${
-                location === '/'
+                location.pathname === '/'
                   ? 'bg-slate-100 text-gray-900'
                   : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
               }`}

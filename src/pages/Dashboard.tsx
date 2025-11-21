@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useProjects } from '../hooks/useProjects';
-import { Link } from '../utils/router';
+import { Link } from 'react-router-dom';
 import { ArrowRight, Calendar, AlertCircle, CheckCircle2, TrendingUp, Users } from 'lucide-react';
 import { motion } from 'framer-motion';
 

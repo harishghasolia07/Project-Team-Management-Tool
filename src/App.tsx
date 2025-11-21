@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useLocation } from './utils/router';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { useProjects } from './hooks/useProjects';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
@@ -10,7 +10,6 @@ import { ProjectDetail } from './pages/ProjectDetail';
 import { Team } from './pages/Team';
 
 function App() {
-  const location = useLocation();
   const { isLoaded } = useProjects();
   const [mounted, setMounted] = useState(false);
 
@@ -29,33 +28,22 @@ function App() {
     );
   }
 
-  const getPage = () => {
-    if (location === '/' || location === '') {
-      return <Landing />;
-    }
-    if (location === '/dashboard') {
-      return <Dashboard />;
-    }
-    if (location === '/projects') {
-      return <Projects />;
-    }
-    if (location === '/team') {
-      return <Team />;
-    }
-    if (location.startsWith('/project/')) {
-      return <ProjectDetail />;
-    }
-    return <Landing />;
-  };
-
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <Header />
-      <main className="flex-1">
-        {getPage()}
-      </main>
-      <Footer />
-    </div>
+    <BrowserRouter>
+      <div className="min-h-screen bg-gray-50 flex flex-col">
+        <Header />
+        <main className="flex-1">
+          <Routes>
+            <Route path="/" element={<Landing />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/projects" element={<Projects />} />
+            <Route path="/team" element={<Team />} />
+            <Route path="/project/:id" element={<ProjectDetail />} />
+          </Routes>
+        </main>
+        <Footer />
+      </div>
+    </BrowserRouter>
   );
 }
 

@@ -1,11 +1,11 @@
 import { motion } from 'framer-motion';
 import { Edit2, Trash2 } from 'lucide-react';
 import { Project } from '../types';
-import { Link } from '../utils/router';
+import { Link } from 'react-router-dom';
 
 const STATUS_COLORS: Record<string, string> = {
   'In Progress': 'bg-blue-100 text-blue-800',
-  Completed: 'bg-green-100 text-green-800',
+  'Completed': 'bg-green-100 text-green-800',
   'On Hold': 'bg-amber-100 text-amber-800',
 };
 
